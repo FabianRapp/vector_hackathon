@@ -3,4 +3,8 @@
 .vscode/c_cpp_properties.json
 .vscode/launch.json
 .vscode/ipch
+<<<<<<< Updated upstream
 compile_commands.json
+=======
+.vscode
+>>>>>>> Stashed changes
