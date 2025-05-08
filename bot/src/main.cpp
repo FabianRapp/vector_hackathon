@@ -76,6 +76,7 @@ void rcv_game(void) {
 		if (game_msg.ids[i] == my_id) {
 			my_idx = i;
 			Serial.printf("Found my_idx: %u\n", my_idx);
+			send_game_ack();
 			return ;
 		}
 	}
