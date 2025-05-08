@@ -172,25 +172,32 @@ void algo() {
 
 		}
 	}
+	dir = current_dir;
 	mx = game_state.players[my_idx].x;
 	my = game_state.players[my_idx].y;
-	for (int turn = 0; turn <= 3; turn++)
-	{
-		nd = (dir + turn) % 4;
-		tx = mx + dirs[nd];
-		ty = my + dirs[nd];
-		if ( board[ty][tx] == 0 )
-		{
-			dir = nd;
-			break;
+	if (used(board, mx, my, dir)) {
+		dir++;
+		if (dir > 4) {
+			dir = 1;
 		}
 	}
+	//for (int turn = 0; turn <= 3; turn++)
+	//{
+	//	nd = (dir + turn) % 4;
+	//	tx = mx + dirs[nd];
+	//	ty = my + dirs[nd];
+	//	if ( board[ty][tx] == 0 )
+	//	{
+	//		dir = nd;
+	//		break;
+	//	}
+	//}
 	Serial.printf("Got game_state:\n");
 	for (int i =0; i < 4; i++) {
 		Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
 	}
 
-	uint8_t move = LEFT;
+	uint8_t move = dir;
 	if (!dead) {
 		current_dir = move;
 		send_move(move);
