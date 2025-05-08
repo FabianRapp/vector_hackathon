@@ -11,6 +11,7 @@ uint8_t player_ID = 0;
 uint8_t game_ID = 0;
 uint8_t my_id = 3;
 uint8_t my_idx = 0;
+bool dead = false;
 
 uint8_t board[WIDTH][HEIGHT];
 
@@ -149,6 +150,9 @@ void algo() {
 
 	for (int i = 0; i < 4; i++) {
 		if (game_state.players[i].x == 255 || game_state.players[i].y) {
+			if (i == my_idx) {
+				dead = true;
+			}
 			//todo
 		} else {
 			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
@@ -161,7 +165,9 @@ void algo() {
 	}
 	
 	uint8_t move = LEFT;
-	send_move(move);
+	if (!dead) {
+		send_move(move);
+	}
 }
 
 // CAN receive callback
