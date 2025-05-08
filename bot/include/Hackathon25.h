@@ -5,12 +5,6 @@
 #define HEIGHT 64
 #include <stdint.h>
 
-//enum rcv_type {
-//	ID,
-//	GAME,
-//	GAME_STATE,
-//	DIE,
-//};
 #define UP  1 //0, 1
 #define RIGHT 2 // 1, 0
 #define DOWN 3 // 0, -1
@@ -37,6 +31,17 @@ enum CAN_MSGs {
 	RENAME = 0x500,
 };
 
+struct point {
+	uint8_t x;
+	uint8_t y;
+	point(int x, int y): x(x), y(y){}
+	point(void): x(0), y(0){}
+	bool operator<(const point& other) const {
+		if (x != other.x) return x < other.x;
+		return y < other.y;
+	}
+};
+
 struct game_msg {
 	uint8_t ids[4];
 };
@@ -47,7 +52,7 @@ struct player_state {
 };
 
 struct game_state {
-	struct player_state players[4];
+	struct point players[4];
 };
 
 
@@ -67,5 +72,7 @@ void send_Join();
 
 // main.cpp
 void rcv_Player();
+
+bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move);
 #endif
 

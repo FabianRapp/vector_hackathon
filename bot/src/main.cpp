@@ -3,6 +3,10 @@
 #include "Hackathon25.h"
 #include <string.h>
 #include <strings.h>
+#include <vector>
+#include <map>
+using namespace std;
+
 int dirs[4] = {UP, DOWN, RIGHT, LEFT};
 int current_dir = UP;
 
@@ -147,17 +151,189 @@ bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
 	return (board[x][y] != 0);
 }
 
-void algo() {
+bool used(uint8_t board[WIDTH][HEIGHT], struct point p, uint8_t move) {
+	return (used(board, p.x, p.y, move));
+}
 
-	int me;												   // my data
-	int mx;												   // my x-coordinate
-	int my;												   // my y-coordinate
-	int nx;												   // new/potential x-coordinate
-	int ny;
-	int dir;
-	int nd;
-	int tx;
-	int ty;
+enum algos {
+	MODULO,
+	MINMAX,
+	FLOODFILL,
+};
+
+enum algos algo_type = MINMAX;
+
+uint8_t modulo_algo(struct game_state game_state) {
+	uint8_t dir = current_dir;
+	uint8_t mx = game_state.players[my_idx].x;
+	uint8_t my = game_state.players[my_idx].y;
+	if (used(board, mx, my, dir)) {
+		dir++;
+		if (dir > 4) {
+			dir = 1;
+		}
+	}
+	return (dir);
+}
+
+void add_point_to_map(uint8_t board[WIDTH][HEIGHT], struct point p, uint8_t val) {
+	board[p.x][p.y] = val;
+}
+
+//todo
+struct point apply_move_to_point(struct point p, uint8_t move) {
+    struct point new_p = p;
+    switch(move) {
+        case LEFT:
+            new_p.x = (p.x == 0) ? WIDTH - 1 : p.x - 1;
+            break;
+        case RIGHT:
+            new_p.x = (p.x == WIDTH - 1) ? 0 : p.x + 1;
+            break;
+        case UP:
+            new_p.y = (p.y == HEIGHT - 1) ? 0 : p.y + 1;
+            break;
+        case DOWN:
+            new_p.y = (p.y == 0) ? HEIGHT - 1 : p.y - 1;
+            break;
+    }
+    return (new_p);
+}
+
+void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[WIDTH][HEIGHT], struct point bot_pos) {
+	for (uint8_t i = 1; i < 5; i++) {
+		if (!used(board, bot_pos, i)) {
+			start_points.push_back(apply_move_to_point(bot_pos, i));
+		}
+	}
+}
+
+
+int get_score(struct game_state game_state, uint8_t move) {
+
+	struct point cur_pos = game_state.players[my_idx];
+
+	// check for possible player head collision
+    struct point my_new_pos = apply_move_to_point(cur_pos, move);
+    for(int i = 0; i < 4; i++) {
+        if(i == my_idx || game_state.players[i].x == 255)
+			continue;
+        struct point their_pos = {
+            game_state.players[i].x,
+            game_state.players[i].y
+        };
+        for(uint8_t their_move = 1; their_move <= 4; their_move++) {
+            struct point their_new_pos = apply_move_to_point(their_pos, their_move);
+            if(my_new_pos.x == their_new_pos.x && my_new_pos.y == their_new_pos.y) {
+                return (INT_MIN + 1);  // should only be choosen as a last resort, could potentially be smarter
+            }
+        }
+    }
+
+
+	uint8_t board_cpy[WIDTH][HEIGHT];
+
+	memcpy(board_cpy, board, sizeof board_cpy);
+	cur_pos = apply_move_to_point(game_state.players[my_idx], move);
+	add_point_to_map(board_cpy, cur_pos, my_idx + 1 + 10);
+	vector<struct point> start_points[4];
+	for (int i = 0; i < 4; i++) {
+		if (i != my_idx) {
+			start_points[i].push_back({game_state.players[i].x, game_state.players[i].y});
+		} else {
+			start_points[my_idx].push_back(cur_pos);
+		}
+	}
+
+	// us first for now
+	uint8_t order[4]; //todo: get array of which player is dead/alive
+	uint8_t j = 0;
+	for (uint8_t i = my_idx; i < 4; i++) {
+		order[j++] = i;
+	}
+	for (uint8_t i = 0; i < my_idx; i++) {
+		order[j++] = i;
+	}
+
+	int it = 0;
+	const int max_iter = 1000;
+	while (it < max_iter) {
+		bool full = true;
+
+		std::map<struct point, uint8_t> moves;
+		for (uint8_t i = 0; i < 4; i++) {
+			uint8_t cur_bot = order[i];
+			if (i == 0 && it == 0) {
+				continue ; // we allready took this turn
+			}
+			for (const struct point &start_point : start_points[cur_bot]) {
+				if (start_point.x == 255 || start_point.y == 255) {
+					//todo: check if tile was captured this turn
+					continue ;
+				}
+				for (uint8_t cur_move = 1; cur_move < 5; cur_move++) {
+					if (used(board_cpy, start_point, cur_move)) {
+						continue ;
+					}
+					cur_pos = apply_move_to_point(start_point, cur_move);
+					full = false;
+					board_cpy[cur_pos.x][cur_pos.y] = cur_bot + 1 + 10;
+					start_points[cur_bot].push_back(cur_pos);
+					moves[cur_pos] = cur_bot;
+				}
+			}
+		}
+		if (full) {
+			break ;
+		}
+		for (int i = 0; i < 4; i++) {
+			vector<struct point> player_starts;
+			for (pair<struct point, int> move : moves) {
+				if (move.second == i) {
+					player_starts.push_back(move.first);
+				}
+			}
+			start_points[i] = player_starts;
+		}
+		it++;
+	}
+	int num_my_tiles = 0;
+	int num_enemy_tiles = 0;
+	for (int x = 0; x < WIDTH; x++) {
+		for (int y = 0; y < HEIGHT; y++) {
+			if (board_cpy[x][y] == my_idx + 1 + 10) {
+				num_my_tiles++;
+			} else if (board_cpy[x][y] > 4) {
+				num_enemy_tiles++;
+			}
+		}
+	}
+	int score = num_my_tiles * 1000 + num_enemy_tiles * -10;
+	return (num_my_tiles);
+	return (score);
+}
+
+uint8_t minmax_algo(struct game_state game_state) {
+	uint8_t x = game_state.players[my_idx].x;
+	uint8_t y = game_state.players[my_idx].y;
+	uint8_t best_move = current_dir;
+	int best_score = INT_MIN;
+	int current_score;
+
+	for (uint8_t i = 1; i < 5; i++) {
+		if (used(board, x, y, i)) {
+			continue ;
+		}
+		current_score = get_score(game_state, i);
+		if (current_score > best_score) {
+			best_score = current_score;
+			best_move = i;
+		}
+	}
+	return (best_move);
+}
+
+void algo() {
 	struct game_state game_state;
 	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 
@@ -172,14 +348,16 @@ void algo() {
 
 		}
 	}
-	dir = current_dir;
-	mx = game_state.players[my_idx].x;
-	my = game_state.players[my_idx].y;
-	if (used(board, mx, my, dir)) {
-		dir++;
-		if (dir > 4) {
-			dir = 1;
-		}
+
+	uint8_t move = current_dir;
+	switch (algo_type) {
+		case (MODULO):
+			move = modulo_algo(game_state);
+			break;
+		case (MINMAX):
+			move = minmax_algo(game_state);
+			break ;
+
 	}
 	//for (int turn = 0; turn <= 3; turn++)
 	//{
@@ -197,7 +375,6 @@ void algo() {
 		Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
 	}
 
-	uint8_t move = dir;
 	if (!dead) {
 		current_dir = move;
 		send_move(move);
