@@ -22,13 +22,13 @@ void setup() {
 	Serial.begin(115200);
 	while (!Serial);
 
-	
+
 	Serial.println("Initializing CAN bus...");
 	if (!setupCan(500000)) {
 		Serial.println("Error: CAN initialization failed!");
 		while (1);
 	}
-	Serial.println("CAN bus initialized successfully."); 
+	Serial.println("CAN bus initialized successfully.");
 
 	CAN.onReceive(onReceive);
 
@@ -71,7 +71,7 @@ void recv_id(void) {
 	//	 player_ID = 0;
 	// }
 
-	Serial.printf("Received Player packet | Player ID received: %u | Own Player ID: %u | Hardware ID received: %u | Own Hardware ID: %u\n", 
+	Serial.printf("Received Player packet | Player ID received: %u | Own Player ID: %u | Hardware ID received: %u | Own Hardware ID: %u\n",
 		msg_player.PlayerID, player_ID, msg_player.HardwareID, hardware_ID);
 }
 
@@ -144,6 +144,16 @@ bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
 }
 
 void algo() {
+
+	int me;												   // my data
+	int mx;												   // my x-coordinate
+	int my;												   // my y-coordinate
+	int nx;												   // new/potential x-coordinate
+	int ny;
+	int dir;
+	int nd;
+	int tx;
+	int ty;
 	struct game_state game_state;
 	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 
@@ -154,12 +164,24 @@ void algo() {
 			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
 		}
 	}
-
+	mx = game_state.players[my_idx].x;
+	my = game_state.players[my_idx].y;
+	for (int turn = 0; turn <= 3; turn++)
+	{
+		nd = (dir + turn) % 4;
+		tx = mx + dirs[nd];
+		ty = my + dirs[nd];
+		if ( board[ty][tx] == 0 )
+		{
+			dir = nd;
+			break;
+		}
+	}
 	Serial.printf("Got game_state:\n");
 	for (int i =0; i < 4; i++) {
 		Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
 	}
-	
+
 	uint8_t move = LEFT;
 	send_move(move);
 }
