@@ -176,7 +176,8 @@ void algo() {
 // CAN receive callback
 void onReceive(int packetSize) {
   if (packetSize) {
-	switch(CAN.packetId()) {
+	long type = CAN.packetId();
+	switch(type) {
 		case (PLAYER): {
 			recv_id();
 			break ;
@@ -195,7 +196,7 @@ void onReceive(int packetSize) {
 		}
 		default: {
 			//Serial.println("CAN: Received unknown packet:%d\n", CAN.packetId());
-			Serial.println("CAN: Received unknown packet:\n");
+			Serial.printf("CAN: Received unknown packet: %x\n", type);
 			break;
 		}
 	}
