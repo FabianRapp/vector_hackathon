@@ -36,6 +36,8 @@ void rename() {
 	//strcpy(buf1, );
 	CAN.beginPacket(RENAME);
 	//CAN.write((uint8_t*)&buf1, sizeof buf1);
+
+	CAN.write(&my_id, sizeof my_id);
 	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
 	CAN.endPacket();
 	Serial.printf("nenamed to %s\n", "TR-OFF");
@@ -79,6 +81,17 @@ void rcv_game(void) {
 	}
 }
 
+//void send_move() {
+//	//char buf1[17];
+//	//memset(buf1, 0, sizeof buf1);
+//	//strcpy(buf1, );
+//	CAN.beginPacket(MOVE);
+//	//CAN.write((uint8_t*)&buf1, sizeof buf1);
+//	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
+//	CAN.endPacket();
+//	Serial.printf("nenamed to %s\n", "TR-OFF");
+//}
+
 // CAN receive callback
 void onReceive(int packetSize) {
   if (packetSize) {
@@ -98,6 +111,7 @@ void onReceive(int packetSize) {
 			for (int i =0; i < 4; i++) {
 				Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
 			}
+
 			break ;
 		}
 		case (DIE): {
