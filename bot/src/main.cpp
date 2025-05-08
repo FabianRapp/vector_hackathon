@@ -10,6 +10,7 @@ uint8_t game_ID = 0;
 uint8_t my_id = 3;
 uint8_t my_idx = 0;
 
+struct game_state game_state;
 
 // Setup
 void setup() {
@@ -30,15 +31,24 @@ void setup() {
 	send_Join();
 }
 
-void rename() {
-	//char buf1[17];
-	//memset(buf1, 0, sizeof buf1);
-	//strcpy(buf1, );
-	CAN.beginPacket(RENAME);
-	//CAN.write((uint8_t*)&buf1, sizeof buf1);
 
-	CAN.write(&my_id, sizeof my_id);
-	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
+struct rename {
+	uint8_t my_id;
+	uint8_t size;
+	char buf[2];
+}__attribute__((packed));
+
+void rename() {
+	CAN.beginPacket(RENAME);
+	struct rename buf;
+	memset(&buf, 0, sizeof buf);
+	buf.my_id = my_id;
+	buf.size = 2;
+	buf.buf[0] = 'A';
+	buf.buf[1] = 0;
+
+	CAN.write((uint8_t*)&buf, sizeof buf);
+
 	CAN.endPacket();
 	Serial.printf("nenamed to %s\n", "TR-OFF");
 }
@@ -50,6 +60,7 @@ void recv_id(void) {
 	if(msg_player.HardwareID == hardware_ID){
 		my_id = msg_player.PlayerID;
 		Serial.printf("Player ID recieved\n");
+		rename();
 	}
 	//  else {
 	//	 player_ID = 0;
@@ -57,7 +68,6 @@ void recv_id(void) {
 
 	Serial.printf("Received Player packet | Player ID received: %u | Own Player ID: %u | Hardware ID received: %u | Own Hardware ID: %u\n", 
 		msg_player.PlayerID, player_ID, msg_player.HardwareID, hardware_ID);
-	rename();
 }
 
 void send_game_ack(void) {
@@ -82,16 +92,16 @@ void rcv_game(void) {
 	}
 }
 
-//void send_move() {
-//	//char buf1[17];
-//	//memset(buf1, 0, sizeof buf1);
-//	//strcpy(buf1, );
-//	CAN.beginPacket(MOVE);
-//	//CAN.write((uint8_t*)&buf1, sizeof buf1);
-//	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
-//	CAN.endPacket();
-//	Serial.printf("nenamed to %s\n", "TR-OFF");
-//}
+void send_move() {
+	//char buf1[17];
+	//memset(buf1, 0, sizeof buf1);
+	//strcpy(buf1, );
+	CAN.beginPacket(MOVE);
+	//CAN.write((uint8_t*)&buf1, sizeof buf1);
+	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
+	CAN.endPacket();
+	Serial.printf("nenamed to %s\n", "TR-OFF");
+}
 
 // CAN receive callback
 void onReceive(int packetSize) {
@@ -106,7 +116,6 @@ void onReceive(int packetSize) {
 			break ;
 		}
 		case (GAME_STATE): {
-			struct game_state game_state;
 			CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 			Serial.printf("Got game_state:\n");
 			for (int i =0; i < 4; i++) {
