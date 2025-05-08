@@ -22,8 +22,8 @@ extern uint8_t game_ID;
 extern uint8_t my_id;
 extern uint8_t my_idx;
 extern uint8_t board[WIDTH][HEIGHT];
-extern int dirs[4] = {UP, DOWN, RIGHT, LEFT};
-extern int current_dir = UP;
+extern int dirs[4];
+extern int current_dir;
 
 enum CAN_MSGs {
 	GAME = 0x040,
