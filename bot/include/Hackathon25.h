@@ -16,6 +16,11 @@
 #define DOWN 3 // 0, -1
 #define LEFT 4  // -1, 0
 
+enum alive {
+	DEAD = -9,
+	ALIVE = 7
+};
+
 extern const uint32_t hardware_ID;
 extern uint8_t player_ID;
 extern uint8_t game_ID;
@@ -24,6 +29,7 @@ extern uint8_t my_idx;
 extern uint8_t board[WIDTH][HEIGHT];
 extern int dirs[4];
 extern int current_dir;
+extern int alive_players[4];
 
 enum CAN_MSGs {
 	GAME = 0x040,

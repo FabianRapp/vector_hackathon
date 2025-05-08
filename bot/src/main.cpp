@@ -4,6 +4,9 @@
 #include <string.h>
 #include <strings.h>
 int dirs[4] = {UP, DOWN, RIGHT, LEFT};
+int alive_players[4] = {-1, -1, -1, -1};
+
+
 int current_dir = UP;
 
 // Global variables
@@ -108,6 +111,39 @@ void send_move(uint8_t move) {
 	Serial.printf("send move %u\n", move);
 }
 
+void	update_map(game_state game)
+{
+	for (int i = 0; i < 4; i++) {
+		if (game.players[i].x == 255 || game.players[i].y == 255) {
+			if (i == my_idx) {
+				dead = true;
+			}
+			else
+			{
+				alive_players[i] = DEAD;
+				for (int y = HEIGHT - 1; y >= 0; y--) {
+					for (int x = 0; x < WIDTH; x++) {
+						if (board[game.players[i].x][game.players[i].y] == i + 1) {
+							board[game.players[i].x][game.players[i].y] = 0;
+							Serial.printf("%d ", i);
+						}
+					}
+				}
+			}
+			//todo
+		} else {
+			board[game.players[i].x][game.players[i].y] = i + 1;
+		}
+	}
+	/*
+		1. Check gamestate
+			if 255 val --> find player and rm its fields
+		2. go through board check the player_Index + 1
+			if (board[x][y] == (player_Index + 1))
+				board[x][y] = 0;
+	*/
+}
+
 void print_board(void) {
 	for (int y = HEIGHT - 1; y >= 0; y--) {
 		for (int x = 0; x < WIDTH; x++) {
@@ -161,17 +197,8 @@ void algo() {
 	struct game_state game_state;
 	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 
-	for (int i = 0; i < 4; i++) {
-		if (game_state.players[i].x == 255 || game_state.players[i].y == 255) {
-			if (i == my_idx) {
-				dead = true;
-			}
-			//todo
-		} else {
-			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
+	update_map(game_state);
 
-		}
-	}
 	dir = current_dir;
 	mx = game_state.players[my_idx].x;
 	my = game_state.players[my_idx].y;
@@ -181,17 +208,17 @@ void algo() {
 			dir = 1;
 		}
 	}
-	//for (int turn = 0; turn <= 3; turn++)
-	//{
-	//	nd = (dir + turn) % 4;
-	//	tx = mx + dirs[nd];
-	//	ty = my + dirs[nd];
-	//	if ( board[ty][tx] == 0 )
-	//	{
-	//		dir = nd;
-	//		break;
-	//	}
-	//}
+	for (int turn = 0; turn <= 3; turn++)
+	{
+		nd = (dir + turn) % 4;
+		tx = mx + dirs[nd];
+		ty = my + dirs[nd];
+		if ( board[ty][tx] == 0 )
+		{
+			dir = nd;
+			break;
+		}
+	}
 	Serial.printf("Got game_state:\n");
 	for (int i =0; i < 4; i++) {
 		Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
