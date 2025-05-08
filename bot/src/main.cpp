@@ -12,7 +12,7 @@ uint8_t game_ID = 0;
 uint8_t my_id = 3;
 uint8_t my_idx = 0;
 bool dead = false;
-
+char error = 0;
 uint8_t board[WIDTH][HEIGHT];
 
 
@@ -108,11 +108,13 @@ void send_move(uint8_t move) {
 }
 
 void print_board(void) {
-	for (int y = HEIGHT - 1; y>= 0; y--) {
+	for (int y = HEIGHT - 1; y >= 0; y--) {
 		for (int x = 0; x < WIDTH; x++) {
 			Serial.printf("%d ", board[x][y]);
 		}
+		Serial.printf("\n");
 	}
+	Serial.printf("\n");
 }
 
 bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
@@ -136,9 +138,9 @@ bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
 		}
 	} else if (move == DOWN) {
 		if (y == 0) {
-			y = HEIGHT -1;
+			y = HEIGHT - 1;
 		} else {
-			y++;
+			y--;
 		}
 	}
 	return (board[x][y] != 0);
@@ -149,13 +151,14 @@ void algo() {
 	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 
 	for (int i = 0; i < 4; i++) {
-		if (game_state.players[i].x == 255 || game_state.players[i].y) {
+		if (game_state.players[i].x == 255 || game_state.players[i].y == 255) {
 			if (i == my_idx) {
 				dead = true;
 			}
 			//todo
 		} else {
 			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
+
 		}
 	}
 
@@ -191,7 +194,8 @@ void onReceive(int packetSize) {
 			break ;
 		}
 		default: {
-			Serial.println("CAN: Received unknown packet:%x\n", CAN.packetId());
+			//Serial.println("CAN: Received unknown packet:%d\n", CAN.packetId());
+			Serial.println("CAN: Received unknown packet:\n");
 			break;
 		}
 	}
