@@ -2,16 +2,45 @@
 #define HACKATHON25_H
 
 #include <stdint.h>
+
+//enum rcv_type {
+//	ID,
+//	GAME,
+//	GAME_STATE,
+//	DIE,
+//};
+
 extern const uint32_t hardware_ID;
 extern uint8_t player_ID;
 extern uint8_t game_ID;
-
+extern uint8_t my_id;
+extern uint8_t my_idx;
 
 enum CAN_MSGs {
-    Join = 0x100,
-    Leave = 0x101,
-    Player = 0x110
+	GAME = 0x040,
+	GAME_STATE = 0x050,
+	MOVE = 0x090,
+	DIE = 0x080,
+    JOIN = 0x100,
+    LEAVE = 0x101,
+    PLAYER = 0x110,
+	GAMEACK = 0x120,
+	RENAME = 0x500,
 };
+
+struct game_msg {
+	uint8_t ids[4];
+};
+
+struct player_state {
+	uint8_t x;
+	uint8_t y;
+};
+
+struct game_state {
+	struct player_state players[4];
+};
+
 
 struct __attribute__((packed)) MSG_Join {
     uint32_t HardwareID;
