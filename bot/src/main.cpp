@@ -2,6 +2,8 @@
 #include <CAN.h>
 #include "Hackathon25.h"
 #include <string.h>
+#include <strings.h>
+
 
 // Global variables
 const uint32_t hardware_ID = (*(RoReg *)0x008061FCUL);
@@ -10,10 +12,13 @@ uint8_t game_ID = 0;
 uint8_t my_id = 3;
 uint8_t my_idx = 0;
 
-struct game_state game_state;
+uint8_t board[WIDTH][HEIGHT];
+
 
 // Setup
 void setup() {
+	memset(board, 0, sizeof board);
+
 	Serial.begin(115200);
 	while (!Serial);
 
@@ -92,15 +97,70 @@ void rcv_game(void) {
 	}
 }
 
-void send_move() {
-	//char buf1[17];
-	//memset(buf1, 0, sizeof buf1);
-	//strcpy(buf1, );
+void send_move(uint8_t move) {
 	CAN.beginPacket(MOVE);
-	//CAN.write((uint8_t*)&buf1, sizeof buf1);
-	CAN.write((uint8_t *)"TR-OFF", strlen("TR-OFF"));
+
+	CAN.write(&my_id, sizeof my_id);
+	CAN.write(&move, sizeof move);
 	CAN.endPacket();
-	Serial.printf("nenamed to %s\n", "TR-OFF");
+	Serial.printf("send move %u\n", move);
+}
+
+void print_board(void) {
+	for (int y = HEIGHT - 1; y>= 0; y--) {
+		for (int x = 0; x < WIDTH; x++) {
+			Serial.printf("%d ", board[x][y]);
+		}
+	}
+}
+
+bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
+	if (move == LEFT) {
+		if (x == 0) {
+			x = WIDTH - 1;
+		} else {
+			x--;
+		}
+	} else if (move == RIGHT) {
+		if (x == WIDTH - 1) {
+			x = 0;
+		} else {
+			x++;
+		}
+	} else if (move == UP) {
+		if (y == HEIGHT - 1) {
+			y = 0;
+		} else {
+			y++;
+		}
+	} else if (move == DOWN) {
+		if (y == 0) {
+			y = HEIGHT -1;
+		} else {
+			y++;
+		}
+	}
+}
+
+void algo() {
+	struct game_state game_state;
+	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
+
+	for (int i = 0; i < 4; i++) {
+		if (game_state.players[i].x == 255 || game_state.players[i].y) {
+			//todo
+		} else {
+			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
+		}
+	}
+
+	Serial.printf("Got game_state:\n");
+	for (int i =0; i < 4; i++) {
+		Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
+	}
+	
+	uint8_t move = LEFT;
+	send_move(move);
 }
 
 // CAN receive callback
@@ -116,19 +176,15 @@ void onReceive(int packetSize) {
 			break ;
 		}
 		case (GAME_STATE): {
-			CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
-			Serial.printf("Got game_state:\n");
-			for (int i =0; i < 4; i++) {
-				Serial.printf("%d: (%u, %u)\n", i, game_state.players[i].x, game_state.players[i].y);
-			}
-
+			algo();
+			print_board();
 			break ;
 		}
 		case (DIE): {
 			break ;
 		}
 		default: {
-			Serial.println("CAN: Received unknown packet");
+			Serial.println("CAN: Received unknown packet:%x\n", CAN.packetId());
 			break;
 		}
 	}

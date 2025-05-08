@@ -1,6 +1,8 @@
 #ifndef HACKATHON25_H
 #define HACKATHON25_H
 
+#define WIDTH 64
+#define HEIGHT 64
 #include <stdint.h>
 
 //enum rcv_type {
@@ -15,6 +17,7 @@ extern uint8_t player_ID;
 extern uint8_t game_ID;
 extern uint8_t my_id;
 extern uint8_t my_idx;
+extern uint8_t board[WIDTH][HEIGHT];
 
 enum CAN_MSGs {
 	GAME = 0x040,
@@ -27,6 +30,11 @@ enum CAN_MSGs {
 	GAMEACK = 0x120,
 	RENAME = 0x500,
 };
+
+#define UP  1 //0, 1
+#define RIGHT 2 // 1, 0
+#define DOWN 3 // 0, -1
+#define LEFT 4  // -1, 0
 
 struct game_msg {
 	uint8_t ids[4];
