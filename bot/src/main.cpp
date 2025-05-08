@@ -140,6 +140,7 @@ bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
 			y++;
 		}
 	}
+	return (board[x][y] != 0);
 }
 
 void algo() {
