@@ -20,27 +20,14 @@ void send_Join(){
     MSG_Join msg_join;
     msg_join.HardwareID = hardware_ID;
 
-    CAN.beginPacket(Join);
+    CAN.beginPacket(JOIN);
     CAN.write((uint8_t*)&msg_join, sizeof(MSG_Join));
     CAN.endPacket();
 
     Serial.printf("JOIN packet sent (Hardware ID: %u)\n", hardware_ID);
 }
 
-// CAN receive callback
-void onReceive(int packetSize) {
-  if (packetSize) {
-    switch(CAN.packetId()) {      
-      case Player:
-        Serial.println("CAN: Received Player packet");
-        rcv_Player();
-        break;
-      default:
-        Serial.println("CAN: Received unknown packet");
-        break;
-    }
-  }
-}
+
 
 // Loop remains empty, logic is event-driven via CAN callback
 void loop() {}
