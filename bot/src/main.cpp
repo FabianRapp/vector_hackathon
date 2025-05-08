@@ -3,7 +3,8 @@
 #include "Hackathon25.h"
 #include <string.h>
 #include <strings.h>
-
+int dirs[4] = {UP, DOWN, RIGHT, LEFT};
+int current_dir = UP;
 
 // Global variables
 const uint32_t hardware_ID = (*(RoReg *)0x008061FCUL);
@@ -191,6 +192,7 @@ void algo() {
 
 	uint8_t move = LEFT;
 	if (!dead) {
+		current_dir = move;
 		send_move(move);
 	}
 }
