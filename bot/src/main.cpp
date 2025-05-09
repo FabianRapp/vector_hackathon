@@ -6,6 +6,16 @@
 #include <vector>
 #include <map>
 #include <assert.h>
+//#include <varargs.h>
+
+#if DEBUG
+#define ft_printf(args) \
+	Serial.printf(args)
+#else
+#define ft_printf(args) \
+	do {}while(0)
+#endif
+
 using namespace std;
 
 int dirs[4] = {UP, DOWN, RIGHT, LEFT};
@@ -25,16 +35,24 @@ bool dead = false;
 char error = 0;
 uint8_t board[WIDTH][HEIGHT];
 
-void	ft_printf(const char *str)
-{
-	#if DEBUG
-	Serial.printf(str);
-	#endif
-}
+//void	ft_printf(const char *str)
+//{
+//	#if DEBUG
+//
+//	Serial.printf(str);
+//	#endif
+//}
+//void	ft_printf(const char *str, va_list args)
+//{
+//	#if DEBUG
+//
+//	Serial.printf(str, args);
+//	#endif
+//}
 enum algos {
 	MODULO,
 	MINMAX,
-	FLOODFILL,
+	//FLOODFILL,
 };
 
 enum algos algo_type = MINMAX;
@@ -305,7 +323,7 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 		order[j++] = i;
 	}
 	int it = 1;
-	while (true) {
+	while (it < 10) {
 		bool full = true;
 		std::map<struct point, int> moves;
 		for (int i = 0; i < player_count; i++) {
@@ -380,7 +398,7 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 	//print_board(graphset);
 	// simple weighting, importance: num_my_tiles > num_enemy_tiles > enemies_dist
 	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000 + enemies_dist;
-	return (num_my_tiles);
+	//return (num_my_tiles);
 	return (score);
 }
 
