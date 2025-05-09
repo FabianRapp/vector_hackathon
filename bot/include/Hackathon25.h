@@ -48,6 +48,9 @@ struct point {
 	uint8_t y;
 	point(int x, int y): x(x), y(y){}
 	point(void): x(0), y(0){}
+	bool operator==(const point& other) const {
+		return (x == other.x && y == other.y);
+	}
 	bool operator<(const point& other) const {
 		if (x != other.x) return x < other.x;
 		return y < other.y;

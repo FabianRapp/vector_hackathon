@@ -62,7 +62,7 @@ void setup() {
 	memset(board, 0, sizeof board);
 
 	Serial.begin(115200);
-	while (!Serial);
+	//while (!Serial);
 
 
 	Serial.println("Initializing CAN bus...");
@@ -308,22 +308,19 @@ void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[
 int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]) {
 	int extra_score = 0;
 
-	if (used(occupied, starts_in[my_idx][0], 1)) {
-		extra_score = -1000000;
-		return (INT_MIN + 1);
+	for (uint8_t move = 1; move < 5; move++) {
+		struct point adjacent = apply_move_to_point(starts_in[my_idx][0], move);
+		for (int i = 0; i < 4; i++) {
+			if (i == my_idx) {
+				continue ;
+			}
+			if (starts_in[i][0] == adjacent) {
+				return (INT_MIN + 1);
+				extra_score -= 100000;
+			}
+		}
 	}
-	if (used(occupied, starts_in[my_idx][0], 2)) {
-		extra_score = -1000000;
-		return (INT_MIN + 1);
-	}
-	if (used(occupied, starts_in[my_idx][0], 3)) {
-		extra_score = -1000000;
-		return (INT_MIN + 1);
-	}
-	if (used(occupied, starts_in[my_idx][0], 4)) {
-		extra_score = -1000000;
-		return (INT_MIN + 1);
-	}
+	
 
 	Serial.printf("get score\n");
 	//std::map<struct point, int> graphs[4];
