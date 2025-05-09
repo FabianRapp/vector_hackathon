@@ -305,6 +305,71 @@ void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[
 	}
 }
 
+static int8_t owner[WIDTH][HEIGHT];
+static uint16_t queue_x[WIDTH*HEIGHT];
+static uint16_t queue_y[WIDTH*HEIGHT];
+
+int get_score_fast(const uint8_t occupied[WIDTH][HEIGHT],
+                   const vector<point> starts_in[4]) {
+  const int N = WIDTH * HEIGHT;
+  int qh = 0, qt = 0;
+
+  // 1) initialize owner array
+  for (int x = 0; x < WIDTH; x++)
+    for (int y = 0; y < HEIGHT; y++)
+      owner[x][y] = (occupied[x][y] != 0 ? -2 : -1);
+
+  // 2) enqueue all alive players’ start points
+  for (int pid = 0; pid < 4; pid++) {
+    if (alive_players[pid] != ALIVE) continue;
+    for (auto &p : starts_in[pid]) {
+      if (owner[p.x][p.y] == -1) {
+        owner[p.x][p.y] = pid;
+        queue_x[qt] = p.x;
+        queue_y[qt] = p.y;
+        if (++qt == N) qt = 0;
+      }
+    }
+  }
+
+  // 3) BFS flood‐fill
+  while (qh != qt) {
+    int x = queue_x[qh], y = queue_y[qh];
+    int8_t pid = owner[x][y];
+    if (++qh == N) qh = 0;
+
+    // four directions with wrap
+    const int dx[4] = { 0,  1,  0, -1};
+    const int dy[4] = { 1,  0, -1,  0};
+    for (int d = 0; d < 4; d++) {
+      int nx = x + dx[d], ny = y + dy[d];
+      if (nx < 0)       nx = WIDTH - 1;
+      else if (nx >= WIDTH) nx = 0;
+      if (ny < 0)       ny = HEIGHT - 1;
+      else if (ny >= HEIGHT) ny = 0;
+
+      if (owner[nx][ny] == -1) {
+        owner[nx][ny] = pid;
+        queue_x[qt] = nx;
+        queue_y[qt] = ny;
+        if (++qt == N) qt = 0;
+      }
+    }
+  }
+
+  // 4) tally scores
+  int my_cells = 0, enemy_cells = 0;
+  for (int x = 0; x < WIDTH; x++)
+    for (int y = 0; y < HEIGHT; y++) {
+      if (owner[x][y] == my_idx)        ++my_cells;
+      else if (owner[x][y] >= 0)        ++enemy_cells;
+    }
+
+  // 5) return a combined score (or just my_cells)
+  return my_cells * 1000 - enemy_cells * 10;
+}
+
+
 int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]) {
 	int extra_score = 0;
 
@@ -439,6 +504,7 @@ uint8_t minmax_algo(struct game_state game_state) {
 		//current_score = get_score(game_state, i);
 
 		//current_score = get_score(game_state, i);
+		// current_score = get_score_fast(board, start_points);
 		current_score = get_score(board, start_points);
 		Serial.printf("score: %d\n", current_score);
 		if (current_score > best_score) {
