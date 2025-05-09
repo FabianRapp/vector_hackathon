@@ -97,7 +97,9 @@ void rename() {
 	CAN.write((uint8_t*)&buf, sizeof buf);
 
 	CAN.endPacket();
+	#if DEBUB
 	Serial.printf("nenamed to %s\n", "TR-OFF");
+	#endif
 }
 
 void recv_id(void) {
@@ -106,7 +108,7 @@ void recv_id(void) {
 
 	if(msg_player.HardwareID == hardware_ID){
 		my_id = msg_player.PlayerID;
-		Serial.printf("Player ID recieved\n");
+		ft_printf("Player ID recieved\n");
 		rename();
 	}
 	//  else {
@@ -121,7 +123,7 @@ void send_game_ack(void) {
 	CAN.beginPacket(GAMEACK);
 	CAN.write((uint8_t*)&my_id, sizeof my_id);
 	CAN.endPacket();
-	Serial.printf("send ack\n");
+	ft_printf("send ack\n");
 }
 
 //Rest func for new game
@@ -144,7 +146,7 @@ void rcv_game(void) {
 	struct game_msg game_msg;
 
 	CAN.readBytes((uint8_t*)&game_msg, sizeof game_msg);
-	Serial.printf("Received game msg\n");
+	ft_printf("Received game msg\n");
 	for (uint8_t i = 0; i < 4; i++) {
 		if (game_msg.ids[i] == my_id) {
 			reset_game();
@@ -212,6 +214,7 @@ void print_board(void) {
 }
 
 void print_board(uint8_t board[WIDTH][HEIGHT]) {
+	#if DEBUG
 	for (int y = HEIGHT - 1; y >= 0; y--) {
 		for (int x = 0; x < WIDTH; x++) {
 			Serial.printf("%d ", board[x][y]);
@@ -219,6 +222,7 @@ void print_board(uint8_t board[WIDTH][HEIGHT]) {
 		Serial.printf("\n");
 	}
 	Serial.printf("\n");
+	#endif
 }
 
 bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
