@@ -504,7 +504,7 @@ uint8_t minmax_algo(struct game_state game_state) {
 	int current_score;
 
 	vector<struct point> start_points[4];
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 4; i++) {
 		if (alive_players[i] == ALIVE && i != my_idx) {
 			start_points[i].push_back(game_state.players[i]);
 		}
