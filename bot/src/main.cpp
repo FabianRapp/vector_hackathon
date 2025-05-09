@@ -4,7 +4,7 @@
 #include <string.h>
 #include <strings.h>
 int dirs[4] = {UP, DOWN, RIGHT, LEFT};
-int alive_players[4] = {-1, -1, -1, -1};
+int alive_players[4] = {ALIVE, ALIVE, ALIVE, ALIVE};
 
 
 int current_dir = UP;
@@ -19,6 +19,12 @@ bool dead = false;
 char error = 0;
 uint8_t board[WIDTH][HEIGHT];
 
+void	ft_printf(char *str)
+{
+	#if DEBUG
+	Serial.printf(str);
+	#endif
+}
 
 // Setup
 void setup() {
@@ -87,6 +93,22 @@ void send_game_ack(void) {
 	Serial.printf("send ack\n");
 }
 
+//Rest func for new game
+void reset_game()
+{
+	player_ID = 0;
+	game_ID = 0;
+	my_id = 3;
+	my_idx = 0;
+	dead = false;
+	error = 0;
+	// board[WIDTH][HEIGHT];
+	memset(board, 0, sizeof board);
+
+	current_dir = UP;
+	memset(alive_players, ALIVE, sizeof(alive_players));
+}
+
 void rcv_game(void) {
 	struct game_msg game_msg;
 
@@ -94,12 +116,14 @@ void rcv_game(void) {
 	Serial.printf("Received game msg\n");
 	for (uint8_t i = 0; i < 4; i++) {
 		if (game_msg.ids[i] == my_id) {
+			reset_game();
 			my_idx = i;
 			Serial.printf("Found my_idx: %u\n", my_idx);
 			send_game_ack();
 			return ;
 		}
 	}
+	dead = true;
 }
 
 void send_move(uint8_t move) {
@@ -125,7 +149,6 @@ void	update_map(game_state game)
 					for (int x = 0; x < WIDTH; x++) {
 						if (board[game.players[i].x][game.players[i].y] == i + 1) {
 							board[game.players[i].x][game.players[i].y] = 0;
-							Serial.printf("%d ", i);
 						}
 					}
 				}
@@ -145,6 +168,7 @@ void	update_map(game_state game)
 }
 
 void print_board(void) {
+	#if DEBUG
 	for (int y = HEIGHT - 1; y >= 0; y--) {
 		for (int x = 0; x < WIDTH; x++) {
 			Serial.printf("%d ", board[x][y]);
@@ -152,6 +176,7 @@ void print_board(void) {
 		Serial.printf("\n");
 	}
 	Serial.printf("\n");
+	#endif
 }
 
 bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
@@ -197,7 +222,11 @@ void algo() {
 	struct game_state game_state;
 	CAN.readBytes((uint8_t*)&game_state, sizeof game_state);
 
+	Serial.printf("PRE update_map: \n");
+	print_board();
 	update_map(game_state);
+	Serial.printf("POST update_map: \n");
+	print_board();
 
 	dir = current_dir;
 	mx = game_state.players[my_idx].x;

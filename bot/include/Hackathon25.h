@@ -5,6 +5,11 @@
 #define HEIGHT 64
 #include <stdint.h>
 
+
+#ifndef DEBUG
+# define DEBUG 1
+#endif
+
 //enum rcv_type {
 //	ID,
 //	GAME,
