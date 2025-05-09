@@ -139,6 +139,7 @@ void	update_map(game_state game)
 {
 	for (int i = 0; i < 4; i++) {
 		if (game.players[i].x == 255 || game.players[i].y == 255) {
+			Serial.printf("PLAYER %d died\n", i);
 			if (i == my_idx) {
 				dead = true;
 			}
