@@ -62,7 +62,7 @@ void setup() {
 	memset(board, 0, sizeof board);
 
 	Serial.begin(115200);
-	while (!Serial);
+	//while (!Serial);
 
 
 	Serial.println("Initializing CAN bus...");
