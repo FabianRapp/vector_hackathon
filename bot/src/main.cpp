@@ -306,6 +306,21 @@ void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[
 }
 
 int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]) {
+	int extra_score = 0;
+
+	if (used(occupied, starts_in[my_idx][0], 1)) {
+		extra_score = -1000000;
+	}
+	if (used(occupied, starts_in[my_idx][0], 2)) {
+		extra_score = -1000000;
+	}
+	if (used(occupied, starts_in[my_idx][0], 3)) {
+		extra_score = -1000000;
+	}
+	if (used(occupied, starts_in[my_idx][0], 4)) {
+		extra_score = -1000000;
+	}
+
 	Serial.printf("get score\n");
 	//std::map<struct point, int> graphs[4];
 	vector<struct point> starts[4];
@@ -381,7 +396,7 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 		}
 	}
 
-	int score = num_my_tiles * 1000 + num_enemy_tiles * -10;
+	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000 + extra_score;
 	//return (num_my_tiles);
 	printf("score: %d\n", score);
 	return (score);
