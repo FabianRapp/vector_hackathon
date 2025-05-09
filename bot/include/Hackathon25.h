@@ -73,6 +73,9 @@ void send_Join();
 // main.cpp
 void rcv_Player();
 
+void print_board(void);
+
+void print_board(uint8_t board[WIDTH][HEIGHT]);
 bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move);
 #endif
 
