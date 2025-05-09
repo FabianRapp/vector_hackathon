@@ -179,8 +179,8 @@ void	update_map(game_state game)
 				alive_players[i] = DEAD;
 				for (int y = HEIGHT - 1; y >= 0; y--) {
 					for (int x = 0; x < WIDTH; x++) {
-						if (board[game.players[i].x][game.players[i].y] == i + 1) {
-							board[game.players[i].x][game.players[i].y] = 0;
+						if (board[x][y] == i + 1) {
+							board[x][y] = 0;
 						}
 					}
 				}
@@ -303,10 +303,9 @@ void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[
 
 int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]) {
 	Serial.printf("get score\n");
-	const int player_count = 4;
-	std::map<struct point, int> graphs[4];
+	//std::map<struct point, int> graphs[4];
 	vector<struct point> starts[4];
-	for (int i = 0; i < player_count; i++) {
+	for (int i = 0; i < 4; i++) {
 		starts[i] = starts_in[i];
 	}
 	//memcpy(starts, starts_in, sizeof starts);
@@ -316,18 +315,21 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 
 	int order[4];
 	int j = 0;
-	for (int i = my_idx; i < player_count; i++) {
+	for (int i = my_idx; i < 4; i++) {
 		order[j++] = i;
 	}
 	for (int i = 0; i < my_idx; i++) {
 		order[j++] = i;
 	}
 	int it = 1;
-	while (it < 10) {
+	while (true) {
 		bool full = true;
 		std::map<struct point, int> moves;
-		for (int i = 0; i < player_count; i++) {
+		for (int i = 0; i < 4; i++) {
 			int cur_player = order[i];
+			if (!(alive_players[i] == ALIVE)) {
+				continue ;
+			}
 			for (struct point start_point : starts[cur_player]) {
 				for (uint8_t i = 1; i < 5; i++) {
 					if (used(graphset, start_point, i)) {
@@ -343,15 +345,15 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 				}
 			}
 		}
-		for (const pair<struct point, int> move : moves) {
-			graphs[move.second][move.first] = it;
-		}
-		//if (full || it > 70) {
+		//for (const pair<struct point, int> move : moves) {
+		//	graphs[move.second][move.first] = it;
+		//}
+		//if (full || it > 40) {
 		if (full) {
 			break ;
 		}
 		//starts.clear();
-		for (int i = 0; i < player_count; i++) {
+		for (int i = 0; i < 4; i++) {
 			vector<struct point> player_starts;
 			for (pair<struct point, int> move : moves) {
 				if (move.second == i) {
@@ -374,30 +376,8 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 			}
 		}
 	}
-	/*
-	// number of tiles we are closest to (higher=better)
-	int num_my_tiles = graphs[player_id].size();
-	// number of tiles enemies are closest to (lower=better)
-	int num_enemy_tiles = 0;
-	for (int i = 0; i < player_count; i++) {
-		if (i != player_id) {
-			num_enemy_tiles += graphs[i].size();
 
-		}
-	}
-	*/
-	// summed distance for reaching each tile for all enemies (higher=better)
-	int enemies_dist = 0;
-	//for (int i = 0; i < player_count; i++) {
-	//	if (i != player_id) {
-	//		for (auto &node : graphs[i]) {
-	//			enemies_dist += node.second;
-	//		}
-	//	}
-	//}
-	//print_board(graphset);
-	// simple weighting, importance: num_my_tiles > num_enemy_tiles > enemies_dist
-	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000 + enemies_dist;
+	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000;
 	//return (num_my_tiles);
 	return (score);
 }
@@ -521,17 +501,23 @@ uint8_t minmax_algo(struct game_state game_state) {
 
 	vector<struct point> start_points[4];
 	for (int i = 0; i < 3; i++) {
-		if (game_state.players[i].x != 255 && i != my_idx) {
+		if (alive_players[i] == ALIVE && i != my_idx) {
 			start_points[i].push_back(game_state.players[i]);
 		}
 	}
+
+#if DEBUG
 	uint8_t possible_count = 0;;
+#endif
 	for (uint8_t i = 1; i < 5; i++) {
 		if (used(board, x, y, i)) {
 			Serial.printf("used (%u, %u): %u\n", x, y, i);
 			continue ;
 		}
+
+#if DEBUG
 		possible_count++;
+#endif
 
 		Serial.printf("unused (%u, %u): %u\n", x, y, i);
 		start_points[my_idx].push_back(apply_move_to_point({x, y}, i));
@@ -545,9 +531,11 @@ uint8_t minmax_algo(struct game_state game_state) {
 			best_move = i;
 		}
 	}
+#if DEBUG
 	if (possible_count) {
 		assert(!used(board, {x, y}, best_move));
 	}
+#endif
 	Serial.print("minmax return\n");
 	return (best_move);
 }
@@ -605,7 +593,7 @@ void onReceive(int packetSize) {
 				return ;
 			}
 			algo();
-			//print_board();
+			print_board();
 			break ;
 		}
 		case (DIE): {
