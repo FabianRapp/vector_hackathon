@@ -310,15 +310,19 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 
 	if (used(occupied, starts_in[my_idx][0], 1)) {
 		extra_score = -1000000;
+		return (INT_MIN + 1);
 	}
 	if (used(occupied, starts_in[my_idx][0], 2)) {
 		extra_score = -1000000;
+		return (INT_MIN + 1);
 	}
 	if (used(occupied, starts_in[my_idx][0], 3)) {
 		extra_score = -1000000;
+		return (INT_MIN + 1);
 	}
 	if (used(occupied, starts_in[my_idx][0], 4)) {
 		extra_score = -1000000;
+		return (INT_MIN + 1);
 	}
 
 	Serial.printf("get score\n");
@@ -396,7 +400,7 @@ int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]
 		}
 	}
 
-	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000 + extra_score;
+	int score = num_my_tiles * 1000000 + num_enemy_tiles * -10000 + extra_score;
 	//return (num_my_tiles);
 	printf("score: %d\n", score);
 	return (score);

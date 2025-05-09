@@ -4,6 +4,7 @@
 #define WIDTH 64
 #define HEIGHT 64
 #include <stdint.h>
+#include <limits.h>
 
 
 #ifndef DEBUG
