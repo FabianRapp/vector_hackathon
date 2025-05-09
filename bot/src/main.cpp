@@ -9,6 +9,7 @@ using namespace std;
 
 int dirs[4] = {UP, DOWN, RIGHT, LEFT};
 int current_dir = UP;
+int frame = 0;
 
 // Global variables
 const uint32_t hardware_ID = (*(RoReg *)0x008061FCUL);
@@ -20,6 +21,13 @@ bool dead = false;
 char error = 0;
 uint8_t board[WIDTH][HEIGHT];
 
+enum algos {
+	MODULO,
+	MINMAX,
+	FLOODFILL,
+};
+
+enum algos algo_type = MINMAX;
 
 // Setup
 void setup() {
@@ -122,6 +130,16 @@ void print_board(void) {
 	Serial.printf("\n");
 }
 
+void print_board(uint8_t board[WIDTH][HEIGHT]) {
+	for (int y = HEIGHT - 1; y >= 0; y--) {
+		for (int x = 0; x < WIDTH; x++) {
+			Serial.printf("%d ", board[x][y]);
+		}
+		Serial.printf("\n");
+	}
+	Serial.printf("\n");
+}
+
 bool used(uint8_t board[WIDTH][HEIGHT], uint8_t x, uint8_t y, uint8_t move) {
 	if (move == LEFT) {
 		if (x == 0) {
@@ -155,13 +173,7 @@ bool used(uint8_t board[WIDTH][HEIGHT], struct point p, uint8_t move) {
 	return (used(board, p.x, p.y, move));
 }
 
-enum algos {
-	MODULO,
-	MINMAX,
-	FLOODFILL,
-};
 
-enum algos algo_type = MINMAX;
 
 uint8_t modulo_algo(struct game_state game_state) {
 	uint8_t dir = current_dir;
@@ -208,8 +220,108 @@ void push_back_possible_moves(vector<struct point> &start_points, uint8_t board[
 	}
 }
 
+int get_score(uint8_t occupied[WIDTH][HEIGHT], vector<struct point> starts_in[4]) {
+	const int player_count = 4;
+	std::map<struct point, int> graphs[4];
+	vector<struct point> starts[4];
+	for (int i = 0; i < player_count; i++) {
+		starts[i] = starts_in[i];
+	}
+	//memcpy(starts, starts_in, sizeof starts);
+
+	uint8_t graphset[WIDTH][HEIGHT];
+	memcpy(graphset, occupied, sizeof graphset);
+
+	int order[4];
+	int j = 0;
+	for (int i = my_idx; i < player_count; i++) {
+		order[j++] = i;
+	}
+	for (int i = 0; i < my_idx; i++) {
+		order[j++] = i;
+	}
+	int it = 1;
+	while (true) {
+		bool full = true;
+		std::map<struct point, int> moves;
+		for (int i = 0; i < player_count; i++) {
+			int cur_player = order[i];
+			for (struct point start_point : starts[cur_player]) {
+				for (uint8_t i = 1; i < 5; i++) {
+					if (used(graphset, start_point, i)) {
+						continue ;
+					}
+					struct point neighbour = apply_move_to_point(start_point, i);
+					// or conditon lets enemies access contested areas
+					if (!graphset[neighbour.x][neighbour.y] || (it == 1 && moves.find(neighbour) != moves.end())) {
+						full = false;
+						graphset[neighbour.x][neighbour.y] = cur_player + 4;
+						moves[neighbour] = cur_player;
+					}
+				}
+			}
+		}
+		for (const pair<struct point, int> move : moves) {
+			graphs[move.second][move.first] = it;
+		}
+		//if (full || it > 70) {
+		if (full) {
+			break ;
+		}
+		//starts.clear();
+		for (int i = 0; i < player_count; i++) {
+			vector<struct point> player_starts;
+			for (pair<struct point, int> move : moves) {
+				if (move.second == i) {
+					player_starts.push_back(move.first);
+				}
+			}
+			starts[i] = player_starts;
+			//starts.push_back(player_starts);
+		}
+		it++;
+	}
+	int num_my_tiles = 0;
+	int num_enemy_tiles = 0;
+	for (int x = 0; x < WIDTH; x++) {
+		for (int y = 0; y < HEIGHT; y++) {
+			if (graphset[x][y] == my_idx + 4) {
+				num_my_tiles++;
+			} else if (graphset[x][y] >= 4) {
+				num_enemy_tiles++;
+			}
+		}
+	}
+	/*
+	// number of tiles we are closest to (higher=better)
+	int num_my_tiles = graphs[player_id].size();
+	// number of tiles enemies are closest to (lower=better)
+	int num_enemy_tiles = 0;
+	for (int i = 0; i < player_count; i++) {
+		if (i != player_id) {
+			num_enemy_tiles += graphs[i].size();
+
+		}
+	}
+	*/
+	// summed distance for reaching each tile for all enemies (higher=better)
+	int enemies_dist = 0;
+	//for (int i = 0; i < player_count; i++) {
+	//	if (i != player_id) {
+	//		for (auto &node : graphs[i]) {
+	//			enemies_dist += node.second;
+	//		}
+	//	}
+	//}
+	print_board(graphset);
+	// simple weighting, importance: num_my_tiles > num_enemy_tiles > enemies_dist
+	int score = num_my_tiles * 10000000 + num_enemy_tiles * -100000 + enemies_dist;
+	return (num_my_tiles);
+	return (score);
+}
 
 int get_score(struct game_state game_state, uint8_t move) {
+	Serial.printf("entry get_score\n");
 
 	struct point cur_pos = game_state.players[my_idx];
 
@@ -238,6 +350,9 @@ int get_score(struct game_state game_state, uint8_t move) {
 	add_point_to_map(board_cpy, cur_pos, my_idx + 1 + 10);
 	vector<struct point> start_points[4];
 	for (int i = 0; i < 4; i++) {
+		if (game_state.players[i].x == 255) {
+			continue ;
+		}
 		if (i != my_idx) {
 			start_points[i].push_back({game_state.players[i].x, game_state.players[i].y});
 		} else {
@@ -256,7 +371,7 @@ int get_score(struct game_state game_state, uint8_t move) {
 	}
 
 	int it = 0;
-	const int max_iter = 1000;
+	const int max_iter = 2;
 	while (it < max_iter) {
 		bool full = true;
 
@@ -297,6 +412,7 @@ int get_score(struct game_state game_state, uint8_t move) {
 		}
 		it++;
 	}
+	print_board(board_cpy);
 	int num_my_tiles = 0;
 	int num_enemy_tiles = 0;
 	for (int x = 0; x < WIDTH; x++) {
@@ -309,11 +425,12 @@ int get_score(struct game_state game_state, uint8_t move) {
 		}
 	}
 	int score = num_my_tiles * 1000 + num_enemy_tiles * -10;
-	return (num_my_tiles);
+	//return (num_my_tiles);
 	return (score);
 }
 
 uint8_t minmax_algo(struct game_state game_state) {
+	Serial.print("minmax entry\n");
 	uint8_t x = game_state.players[my_idx].x;
 	uint8_t y = game_state.players[my_idx].y;
 	uint8_t best_move = current_dir;
@@ -322,14 +439,26 @@ uint8_t minmax_algo(struct game_state game_state) {
 
 	for (uint8_t i = 1; i < 5; i++) {
 		if (used(board, x, y, i)) {
+			Serial.printf("used (%u, %u): %u\n", x, y, i);
 			continue ;
 		}
-		current_score = get_score(game_state, i);
+
+		//current_score = get_score(game_state, i);
+		vector<struct point> start_points[4];
+		for (int i = 0; i < 3; i++) {
+			if (game_state.players[i].x != 255) {
+				start_points[i].push_back(game_state.players[i]);
+			}
+		}
+		//current_score = get_score(game_state, i);
+		current_score = get_score(board, start_points);
+		Serial.printf("score: %d\n", current_score);
 		if (current_score > best_score) {
 			best_score = current_score;
 			best_move = i;
 		}
 	}
+	Serial.print("minmax return\n");
 	return (best_move);
 }
 
@@ -347,6 +476,7 @@ void algo() {
 			board[game_state.players[i].x][game_state.players[i].y] = i + 1;
 
 		}
+
 	}
 
 	uint8_t move = current_dir;
@@ -356,6 +486,8 @@ void algo() {
 			break;
 		case (MINMAX):
 			move = minmax_algo(game_state);
+			break ;
+		default:
 			break ;
 
 	}
@@ -379,6 +511,8 @@ void algo() {
 		current_dir = move;
 		send_move(move);
 	}
+
+	Serial.printf("frame: %d\n", frame++);
 }
 
 // CAN receive callback
@@ -396,10 +530,17 @@ void onReceive(int packetSize) {
 		}
 		case (GAME_STATE): {
 			algo();
-			print_board();
+			//print_board();
 			break ;
 		}
 		case (DIE): {
+			break ;
+		}
+		case (MOVE):
+		case (JOIN):
+		case (RENAME):
+		case (GAMEACK):
+		{
 			break ;
 		}
 		default: {
